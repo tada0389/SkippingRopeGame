@@ -10,10 +10,10 @@ namespace Test
         private Rigidbody ropePointPrefab;
 
         [SerializeField]
-        private int pointNum = 20;
+        private int pointNumHalf = 20;
 
         [SerializeField]
-        private Vector3 beginPosition = new Vector3(-10f, 0f, 0f);
+        private Vector3 centerPosition = new Vector3(0f, 0f, 0f);
 
         [SerializeField]
         private Vector3 pointDistance = new Vector3(1f, 0f, 0f);
@@ -25,42 +25,73 @@ namespace Test
         // Start is called before the first frame update
         void Start()
         {
+            UnityEngine.Assertions.Assert.IsTrue(pointNumHalf >= 1, "質点の数が足りません");
+
             line = GetComponent<LineRenderer>();
             line.material = new Material(Shader.Find("Unlit/Color"));
-            line.positionCount = pointNum;
+            line.positionCount = pointNumHalf * 2 + 1;
 
-            ropePoints = new List<Rigidbody>(pointNum);
-            for (int i = 0; i < pointNum; ++i)
+            ropePoints = new List<Rigidbody>(pointNumHalf * 2 + 1);
+
+            // 左側の質点
             {
                 Rigidbody point = Instantiate(ropePointPrefab, transform);
-                point.transform.localPosition = beginPosition + pointDistance * i;
-
-                //point.GetComponent<MeshRenderer>().enabled = false;
-                point.useGravity = false;
-                //Destroy(point.GetComponent<HingeJoint>());
+                point.transform.localPosition = centerPosition - pointDistance * pointNumHalf;
                 ropePoints.Add(point);
-                if (i >= 1)
-                {
-                    //ropePoints[i - 1].GetComponent<HingeJoint>().connectedBody = point;
-                }
+            }
+            for(int i = 1; i < pointNumHalf; ++i)
+            {
+                Rigidbody point = Instantiate(ropePointPrefab, transform);
+                point.transform.localPosition = centerPosition - pointDistance * (pointNumHalf - i);
+                // つなげる
+                point.GetComponent<HingeJoint>().connectedBody = ropePoints[i - 1];
+                ropePoints.Add(point);
+            }
+            // 中央の質点
+            {
+                Rigidbody point = Instantiate(ropePointPrefab, transform);
+                point.transform.localPosition = centerPosition;
+                ropePoints.Add(point);
             }
 
-            // 両端を固定する
-            if (pointNum != 0)
+            // 右側の質点
             {
-                var rb = ropePoints[0];
-                rb.isKinematic = true;
-                rb.useGravity = false;
-                //rb.gameObject.AddComponent<RopeTest>();
+                Rigidbody point = Instantiate(ropePointPrefab, transform);
+                point.transform.localPosition = centerPosition + pointDistance;
+                ropePoints.Add(point);
             }
-            if (pointNum >= 2)
+            for (int i = 1; i < pointNumHalf; ++i)
             {
-                var rb = ropePoints[pointNum - 1];
-                //Destroy(rb.GetComponent<HingeJoint>());
-                //rb.isKinematic = true;
-                //rb.useGravity = false;
-                //rb.gameObject.AddComponent<RopeTest>();
+                Rigidbody point = Instantiate(ropePointPrefab, transform);
+                point.transform.localPosition = centerPosition + pointDistance * (i + 1);
+                // つなげる
+                ropePoints[pointNumHalf + i].GetComponent<HingeJoint>().connectedBody = point;
+                ropePoints.Add(point);
             }
+
+            // 中央の質点から左右につなげる
+            {
+                ropePoints[pointNumHalf].gameObject.AddComponent<HingeJoint>();
+                var joints = ropePoints[pointNumHalf].GetComponents<HingeJoint>();
+                joints[0].connectedBody = ropePoints[pointNumHalf - 1];
+                joints[1].connectedBody = ropePoints[pointNumHalf + 1];
+            }
+
+            // 端点を特別にする
+            {
+                Rigidbody point = ropePoints[0];
+                point.isKinematic = true;
+                point.useGravity = false;
+                point.gameObject.AddComponent<RopeTest>();
+            }
+            {
+                Rigidbody point = ropePoints[pointNumHalf * 2];
+                point.isKinematic = true;
+                point.useGravity = false;
+                point.gameObject.AddComponent<RopeTest>();
+            }
+
+            foreach (var point in ropePoints) point.GetComponent<MeshRenderer>().enabled = false;
         }
 
         private void Update()

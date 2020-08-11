@@ -6,8 +6,12 @@ namespace Test
 {
     public class RopeTest : MonoBehaviour
     {
+        [SerializeField]
         private float radius = 1.4f;
-        private float speed = 0.2f;
+        [SerializeField]
+        private float speed = 450f;
+
+
         private float x;
         private float angle = 0;
 
@@ -20,7 +24,7 @@ namespace Test
         // Update is called once per frame
         void Update()
         {
-            angle += speed;
+            angle += speed * Time.deltaTime;
 
             float y = 1.2f * radius * Mathf.Sin(-angle * Mathf.Deg2Rad);
             float z = radius * Mathf.Cos(angle * Mathf.Deg2Rad);
